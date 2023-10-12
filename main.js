@@ -25,6 +25,11 @@ function createWindow() {
 
 app.on('ready', () => {
   createWindow();
+  const shouldStartOnLogin= true;
+  app.setLoginItemSettings({
+    openAtLogin:shouldStartOnLogin,
+    openAsHidden:false
+  })
 });
 
 app.on('window-all-closed', function () {
