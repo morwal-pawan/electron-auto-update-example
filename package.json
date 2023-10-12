@@ -13,13 +13,13 @@
     "build": "electron-builder build --mac --win --publish never",
     "deploy": "electron-builder build --mac --win --publish always"
   },
-  "author": "",
+  "author": "pawan mahawar",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^5.0.1",
-    "electron-builder": "^20.40.2"
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
   },
   "dependencies": {
-    "electron-updater": "^4.0.6"
+    "electron-updater": "^6.1.4"
   }
 }
