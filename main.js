@@ -6,7 +6,7 @@ let mainWindow;
 let tray = null
 let quitApp=false;
 autoUpdater.autoDownload=false;
-function createWindow() {
+function createWindow() { 
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -79,8 +79,9 @@ autoUpdater.on('update-downloaded', () => {
   // mainWindow.webContents.send('update_downloaded');
   console.log("update-downloaded")
   setTimeout(()=>{
+    quitApp = true;
     autoUpdater.quitAndInstall();
-  },2000)
+  },8000)
 });
 
 
