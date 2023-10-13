@@ -4,7 +4,7 @@ const path = require('path')
 
 let mainWindow;
 let tray = null
-
+let quitApp=false;
 autoUpdater.autoDownload=false;
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -19,12 +19,21 @@ function createWindow() {
   mainWindow.on('closed', function () {
     mainWindow = null;
   });
-  // ipcMain.send('app_version', { version: app.getVersion() });
+ 
+  
   mainWindow.once('ready-to-show', () => {
     console.log("ready-to-show")
     // autoUpdater.checkForUpdates();
   });
-  mainWindow.webContents.openDevTools();
+  mainWindow.on('close', function (evt) {
+    console.log("mainWindow close",{quitApp})
+    if(!quitApp){
+      evt.preventDefault();
+      mainWindow.hide()
+    }
+    
+});
+  // mainWindow.webContents.openDevTools();
 
 }
 
@@ -40,6 +49,7 @@ app.on('ready', () => {
     openAsHidden:false
   })
 });
+
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {
@@ -88,6 +98,7 @@ function createTray () {
     {
       label: 'Quit',
       click: () => {
+        quitApp=true;
         app.quit() // actually quit the app.
       }
     },
