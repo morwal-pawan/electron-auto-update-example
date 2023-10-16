@@ -8,14 +8,14 @@ const {
 } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
+const { getFiles, createTray } = require("./mainUtils");
 
 let mainWindow;
 let tray = null;
-let quitApp = false;
+let isQuitApp = false;
 autoUpdater.autoDownload = false;
 
 const gotTheLock = app.requestSingleInstanceLock();
-console.log("gotTheLock", { gotTheLock });
 if (!gotTheLock) {
   app.quit();
 } else {
@@ -46,8 +46,8 @@ function createWindow() {
     // autoUpdater.checkForUpdates();
   });
   mainWindow.on("close", function (evt) {
-    console.log("mainWindow close", { quitApp });
-    if (!quitApp) {
+    console.log("mainWindow close", { isQuitApp });
+    if (!isQuitApp) {
       evt.preventDefault();
       mainWindow.hide();
     }
@@ -57,9 +57,10 @@ function createWindow() {
 
 app.on("ready", () => {
   console.log("aap ready");
+  getFiles();
   autoUpdater.checkForUpdates();
   if (!tray) {
-    createTray();
+    createTray({showApp,quitApp});
   }
   const shouldStartOnLogin = true;
   app.setLoginItemSettings({
@@ -96,30 +97,20 @@ autoUpdater.on("update-downloaded", () => {
   // mainWindow.webContents.send('update_downloaded');
   console.log("update-downloaded");
   setTimeout(() => {
-    quitApp = true;
+    isQuitApp = true;
     autoUpdater.quitAndInstall();
   }, 8000);
 });
 
-function createTray() {
-  const icon = path.join(__dirname, "/app.png");
-  const trayicon = nativeImage.createFromPath(icon);
-  tray = new Tray(trayicon.resize({ width: 16 }));
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: "Show App",
-      click: () => {
-        createWindow();
-      },
-    },
-    {
-      label: "Quit",
-      click: () => {
-        quitApp = true;
-        app.quit(); // actually quit the app.
-      },
-    },
-  ]);
-
-  tray.setContextMenu(contextMenu);
+function showApp(){
+  if(createWindow){
+    createWindow();
+  }
 }
+function quitApp(){
+  if(app){
+    isQuitApp = true;
+    app.quit(); 
+  }
+}
+
