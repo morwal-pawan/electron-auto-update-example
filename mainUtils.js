@@ -1,9 +1,4 @@
-const {
-    app,
-    Menu,
-    nativeImage,
-    Tray,
-  } = require("electron");
+const { app, Menu, nativeImage, Tray } = require("electron");
 const fs = require("fs");
 const path = require("path");
 
@@ -29,13 +24,13 @@ async function getFilesInDownloadFolder({ directoryPath }) {
   return [];
 }
 
- function getWebmFiles(files = []) {
+function getWebmFiles(files = []) {
   return files.filter((file) => {
-    return file?.name?.includes(".webm");
+    return file?.name?.includes(".webm") && file?.name?.includes("live-");
   });
 }
 
-  async function getFiles() {
+async function moveFiles() {
   const userProfile = getUserPrifle();
   const directoryPath = `${userProfile}\\Downloads`;
   const files = await getFilesInDownloadFolder({ directoryPath });
@@ -43,23 +38,26 @@ async function getFilesInDownloadFolder({ directoryPath }) {
   try {
     await moveFilesToSpecificFolder(videoFIles);
   } catch (error) {
-    console.log("getFiles");
+    console.log("moveFiles");
   }
 }
 
- async function moveFilesToSpecificFolder(files = []) {
+async function moveFilesToSpecificFolder(files = []) {
   try {
     const userProfile = getUserPrifle();
-    const directoryPath = `${userProfile}\\VideoRecording`;
-    
-    await createDirectory({ directoryPath: directoryPath });
-    files.map((file) => moveFile({ file, directoryPath }));
+    const videoChunksObject = separateVideoFilesBasedOnClassUID(files);
+    Object.entries(videoChunksObject)?.map((classVideoChunks) => {
+      const [classUID, videoChunksFiles] = classVideoChunks;
+      const directoryPath = `${userProfile}\\VideoRecording\\${classUID}`;
+      createDirectory({ directoryPath: directoryPath });
+      videoChunksFiles.map((file) => moveFile({ file, directoryPath }));
+    });
   } catch (error) {
     throw error;
   }
 }
 
- async function createDirectory({ directoryPath }) {
+async function createDirectory({ directoryPath }) {
   if (!fs.existsSync(directoryPath)) {
     try {
       fs.mkdirSync(directoryPath, { recursive: true });
@@ -70,7 +68,7 @@ async function getFilesInDownloadFolder({ directoryPath }) {
   }
 }
 
- async function moveFile({ file, directoryPath }) {
+async function moveFile({ file, directoryPath }) {
   const sourcePath = file.filePath;
   const destinationPath = `${directoryPath}\\${file.name}`;
   try {
@@ -80,30 +78,42 @@ async function getFilesInDownloadFolder({ directoryPath }) {
   }
 }
 
-function createTray({showApp,quitApp}) {
-    const icon = path.join(__dirname, "/app.png");
-    const trayicon = nativeImage.createFromPath(icon);
-    tray = new Tray(trayicon.resize({ width: 16 }));
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: "Show App",
-        click:showApp,
-      },
-      {
-        label: "Quit",
-        click: quitApp,
-      },
-    ]);
-  
-    tray.setContextMenu(contextMenu);
-  }
-  
-async function deleteFile(filePath){  
-  try {
-      fs.unlinkSync(filePath)
-    } catch (error) {
-      throw error;
-    }
- }
+function createTray({ showApp, quitApp }) {
+  const icon = path.join(__dirname, "/app.png");
+  const trayicon = nativeImage.createFromPath(icon);
+  tray = new Tray(trayicon.resize({ width: 16 }));
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Show App",
+      click: showApp,
+    },
+    {
+      label: "Quit",
+      click: quitApp,
+    },
+  ]);
+  tray.setContextMenu(contextMenu);
+}
 
-module.exports = { getFiles ,createTray,deleteFile}
+async function deleteFile(filePath) {
+  try {
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    throw error;
+  }
+}
+
+function separateVideoFilesBasedOnClassUID(data = []) {
+  return data.reduce((acc, file) => {
+    const classUID = file.name.split("-")[1];
+    if (acc[classUID]) {
+      const videoChunks = acc[classUID];
+      return { ...acc, [classUID]: [...videoChunks, file] };
+    }
+    return {
+      ...acc,
+      [classUID]: [file],
+    };
+  }, {});
+}
+module.exports = { moveFiles, createTray, deleteFile };

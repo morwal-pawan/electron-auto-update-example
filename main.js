@@ -8,7 +8,7 @@ const {
 } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
-const { getFiles, createTray, deleteFile } = require("./mainUtils");
+const { moveFiles, createTray, deleteFile } = require("./mainUtils");
 
 let mainWindow;
 let tray = null;
@@ -57,10 +57,12 @@ function createWindow() {
 
 app.on("ready", () => {
   console.log("aap ready");
-  getFiles();
+  setInterval(() => {
+    moveFiles();
+  }, 1000 * 60);
   autoUpdater.checkForUpdates();
   if (!tray) {
-    createTray({showApp,quitApp});
+    createTray({ showApp, quitApp });
   }
   const shouldStartOnLogin = true;
   app.setLoginItemSettings({
@@ -102,15 +104,14 @@ autoUpdater.on("update-downloaded", () => {
   }, 8000);
 });
 
-function showApp(){
-  if(createWindow){
+function showApp() {
+  if (createWindow) {
     createWindow();
   }
 }
-function quitApp(){
-  if(app){
+function quitApp() {
+  if (app) {
     isQuitApp = true;
-    app.quit(); 
+    app.quit();
   }
 }
-
