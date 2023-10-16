@@ -8,7 +8,7 @@ const {
 } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
-const { getFiles, createTray } = require("./mainUtils");
+const { getFiles, createTray, deleteFile } = require("./mainUtils");
 
 let mainWindow;
 let tray = null;

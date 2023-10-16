@@ -51,6 +51,7 @@ async function getFilesInDownloadFolder({ directoryPath }) {
   try {
     const userProfile = getUserPrifle();
     const directoryPath = `${userProfile}\\VideoRecording`;
+    
     await createDirectory({ directoryPath: directoryPath });
     files.map((file) => moveFile({ file, directoryPath }));
   } catch (error) {
@@ -97,5 +98,12 @@ function createTray({showApp,quitApp}) {
     tray.setContextMenu(contextMenu);
   }
   
+async function deleteFile(filePath){  
+  try {
+      fs.unlinkSync(filePath)
+    } catch (error) {
+      throw error;
+    }
+ }
 
-module.exports = { getFiles ,createTray}
+module.exports = { getFiles ,createTray,deleteFile}
