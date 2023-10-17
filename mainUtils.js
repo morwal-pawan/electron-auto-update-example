@@ -12,7 +12,9 @@ async function getFilesInDownloadFolder({ directoryPath }) {
     return items
       .filter((item) => {
         const itemPath = path.join(directoryPath, item);
-        return fs.promises.stat(itemPath).then((stats) => stats.isDirectory());
+        return fs.promises.stat(itemPath).then((stats) => {
+          return stats.isFile();
+        });
       })
       .map((item) => {
         const itemPath = path.join(directoryPath, item);
@@ -30,27 +32,67 @@ function getWebmFiles(files = []) {
   });
 }
 
+async function getDataFiles(files = []) {
+  const jsonFiles = files.filter((file) => {
+    return file?.name?.includes(".json") && file?.name?.includes("live-");
+  });
+  const promise = jsonFiles.map((jsonFile) => {
+    const { filePath } = jsonFile;
+    return fs.promises.stat(filePath).then((stats) => {
+      return { size: stats.size, ...jsonFile };
+    });
+  });
+  return Promise.all(promise);
+}
+
 async function moveFiles() {
   const userProfile = getUserPrifle();
   const directoryPath = `${userProfile}\\Downloads`;
   const files = await getFilesInDownloadFolder({ directoryPath });
   const videoFIles = getWebmFiles(files);
+  const dataJsonFiles = await getDataFiles(files);
   try {
-    await moveFilesToSpecificFolder(videoFIles);
+    await moveVideoChunksFilesToSpecificFolder(videoFIles);
+    await moveDataJsonFilesToSpecificFolder(dataJsonFiles);
   } catch (error) {
-    console.log("moveFiles");
+    console.log("moveFiles error", error);
   }
 }
 
-async function moveFilesToSpecificFolder(files = []) {
+async function moveVideoChunksFilesToSpecificFolder(files = []) {
   try {
     const userProfile = getUserPrifle();
-    const videoChunksObject = separateVideoFilesBasedOnClassUID(files);
+    const videoChunksObject = separateFilesBasedOnClassUID(files);
     Object.entries(videoChunksObject)?.map((classVideoChunks) => {
       const [classUID, videoChunksFiles] = classVideoChunks;
       const directoryPath = `${userProfile}\\VideoRecording\\${classUID}`;
       createDirectory({ directoryPath: directoryPath });
       videoChunksFiles.map((file) => moveFile({ file, directoryPath }));
+    });
+  } catch (error) {
+    throw error;
+  }
+}
+
+const getDataJsonFiles = (data) => {
+  const sortedData = data.sort((file1, file2) => file2.size - file1.size);
+  return { toBeMoved: data[0], toBeDeleted: data.slice(1) };
+};
+
+async function moveDataJsonFilesToSpecificFolder(files = []) {
+  try {
+    const userProfile = getUserPrifle();
+    const dataJsonFilesObject = separateFilesBasedOnClassUID(files);
+    Object.entries(dataJsonFilesObject)?.map((jsonFileObject) => {
+      const [classUID, dataJsonFiles] = jsonFileObject;
+      const { toBeMoved, toBeDeleted } = getDataJsonFiles(dataJsonFiles);
+      const directoryPath = `${userProfile}\\VideoRecording\\${classUID}`;
+      createDirectory({ directoryPath: directoryPath });
+      toBeDeleted.map((file) => deleteFile(file.filePath));
+      moveFile({
+        file: { ...toBeMoved, name: `live-${classUID}-event-data.json` },
+        directoryPath,
+      });
     });
   } catch (error) {
     throw error;
@@ -103,12 +145,12 @@ async function deleteFile(filePath) {
   }
 }
 
-function separateVideoFilesBasedOnClassUID(data = []) {
+function separateFilesBasedOnClassUID(data = []) {
   return data.reduce((acc, file) => {
     const classUID = file.name.split("-")[1];
     if (acc[classUID]) {
-      const videoChunks = acc[classUID];
-      return { ...acc, [classUID]: [...videoChunks, file] };
+      const chunks = acc[classUID];
+      return { ...acc, [classUID]: [...chunks, file] };
     }
     return {
       ...acc,
